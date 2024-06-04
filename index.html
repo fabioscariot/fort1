@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONVERSOR DE TAXA</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <img src="logo.png" alt="Logo do Conversor de Taxa" class="logo-background">
+    <div class="container" role="main" aria-labelledby="titulo-principal">
+        <h1 id="titulo-principal">CONVERSOR DE TAXA</h1>
+        <form id="converterForm" aria-describedby="form-descricao">
+            <div class="form-group">
+                <label for="rate"><i class="fas fa-percentage"></i> Taxa (%):</label>
+                <input type="text" id="rate" placeholder="Digite a taxa" required aria-required="true">
+            </div>
+            
+            <div class="form-group">
+                <label for="fromPeriod"><i class="fas fa-calendar-alt"></i> Período Original:</label>
+                <div class="custom-select-wrapper">
+                    <select id="fromPeriod" required aria-required="true">
+                        <option value="dia">Dia</option>
+                        <option value="semana">Semana</option>
+                        <option value="quinzena">Quinzena</option>
+                        <option value="mês">Mês</option>
+                        <option value="bimestre">Bimestre</option>
+                        <option value="trimestre">Trimestre</option>
+                        <option value="semestre">Semestre</option>
+                        <option value="ano">Ano</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="toPeriod"><i class="fas fa-exchange-alt"></i> Converter para:</label>
+                <div class="custom-select-wrapper">
+                    <select id="toPeriod" required aria-required="true">
+                        <option value="dia">Dia</option>
+                        <option value="semana">Semana</option>
+                        <option value="quinzena">Quinzena</option>
+                        <option value="mês">Mês</option>
+                        <option value="bimestre">Bimestre</option>
+                        <option value="trimestre">Trimestre</option>
+                        <option value="semestre">Semestre</option>
+                        <option value="ano">Ano</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button type="submit"><i class="fas fa-calculator"></i> Converter</button>
+            <div class="progress-bar" id="progressBar" style="display: none;"></div> <!-- Barra de carregamento -->
+        </form>
+        <div id="result" aria-live="polite"></div> <!-- Adicionado para exibir o resultado -->
+        <div id="error" style="color: red;" aria-live="assertive"></div> <!-- Adicionado para exibir mensagens de erro -->
+        <audio id="clickSound" src="click-sound.mp3"></audio> <!-- Adicionado elemento de áudio -->
+    </div>
+
+    <!-- Contêiner de Suporte -->
+    <div class="support-container" role="complementary" aria-labelledby="suporte-titulo">
+        <h2 id="suporte-titulo">Suporte</h2>
+        <p>Email: <a href="mailto:simuladorfinancimantos@gmail.com">simuladorfinancimantos@gmail.com</a></p>
+        <p>Instagram: <a href="https://www.instagram.com/simulador.financiamentos" target="_blank">@simulador.financiamentos</a></p>
+        <p>Descrição dos cálculos: A conversão das taxas é feita utilizando fórmulas matemáticas que levam em consideração os períodos originais e desejados, aplicando transformações adequadas para obter o resultado equivalente.</p>
+    </div>
+
+    <script>
+        // Função para formatar a taxa
+        function formatRate(rate) {
+            rate = rate.replace(/[^\d,]/g, ''); // Remove todos os caracteres que não são dígitos ou vírgulas
+            if (rate.includes(',')) {
+                const parts = rate.split(',');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.'); // Adiciona um ponto a cada 3 dígitos na parte inteira
+                rate = parts.join(',');
+            } else {
+                rate = rate.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); // Adiciona um ponto a cada 3 dígitos
+            }
+            return rate;
+        }
+
+        document.getElementById('rate').addEventListener('input', function(event) {
+            const input = event.target;
+            const value = input.value;
+            input.value = formatRate(value);
+        });
+
+        document.getElementById('converterForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const clickSound = document.getElementById('clickSound');
+            clickSound.play(); // Toca o som de clique
+
+            const rateInput = document.getElementById('rate').value;
+            const rate = parseFloat(rateInput.replace(/\./g, '').replace(',', '.')); // Remove os pontos e substitui vírgula por ponto para conversão
+            const fromPeriod = document.getElementById('fromPeriod').value;
+            const toPeriod = document.getElementById('toPeriod').value;
+            const errorDiv = document.getElementById('error');
+            const resultDiv = document.getElementById('result');
+            const progressBar = document.getElementById('progressBar');
+            errorDiv.innerText = ''; // Limpar mensagens de erro anteriores
+            resultDiv.innerText = ''; // Limpar resultado anterior
+            progressBar.style.display = 'block'; // Mostrar a barra de carregamento
+            progressBar.style.width = '0%'; // Resetar a largura da barra de carregamento
+
+            // Validação para garantir que a taxa seja um número positivo
+            if (rate <= 0 || isNaN(rate)) {
+                progressBar.style.display = 'none'; // Esconder a barra de carregamento
+                errorDiv.innerText = 'Por favor, insira uma taxa positiva.';
+                return;
+            }
+
+            // Validação para garantir que os períodos de conversão sejam diferentes
+            if (fromPeriod === toPeriod) {
+                progressBar.style.display = 'none'; // Esconder a barra de carregamento
+                errorDiv.innerText = 'Os períodos de conversão devem ser diferentes.';
+                return;
+            }
+
+            const periodsInYear = {
+                dia: 365,
+                semana: 52,
+                quinzena: 24,
+                mês: 12,
+                bimestre: 6,
+                trimestre: 4,
+                semestre: 2,
+                ano: 1
+            };
+
+            let annualRate;
+            if (fromPeriod === 'ano') {
+                annualRate = rate;
+            } else {
+                annualRate = (Math.pow(1 + rate / 100, periodsInYear[fromPeriod]) - 1) * 100;
+            }
+
+            let convertedRate;
+            if (toPeriod === 'ano') {
+                convertedRate = annualRate;
+            } else {
+                convertedRate = (Math.pow(1 + annualRate / 100, 1 / periodsInYear[toPeriod]) - 1) * 100;
+            }
+            
+            convertedRate = convertedRate.toFixed(2);
+
+            // Função auxiliar para determinar o prefixo correto
+            function getPrefix(period) {
+                if (period === 'semana' || period === 'quinzena') {
+                    return 'por';
+                } else {
+                    return 'ao';
+                }
+            }
+
+            const toPrefix = getPrefix(toPeriod);
+
+            let width = 0;
+            const interval = setInterval(function() {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    progressBar.style.display = 'none'; // Esconder a barra de carregamento
+                    resultDiv.style.display = 'block'; // Mostrar o resultado
+                    resultDiv.innerText = `${convertedRate}% ${toPrefix} ${toPeriod}.`;
+                } else {
+                    width++;
+                    progressBar.style.width = width + '%';
+                }
+            }, 10); // Tempo total de carregamento de 1 segundo
+        });
+    </script>
+</body>
+</html>
